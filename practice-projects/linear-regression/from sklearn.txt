@@ -1,0 +1,178 @@
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
+
+studentsDS = '../data/sample-files/USCI/st-perf-10000.csv'
+extraActivities  = 'Extracurricular Activities'
+sourcePath = '../data/sample-files'
+targetDirectory = '../data/training-files'
+y_train_column = 'Performance Index'
+
+
+df = pd.read_csv(studentsDS)
+df[extraActivities] = df[extraActivities].map(lambda x: 1 if str.lower(x) == 'yes' else 0)
+
+minMaxScaler = MinMaxScaler()
+minMaxScaled = minMaxScaler.fit_transform(df)
+df = pd.DataFrame(minMaxScaled,columns=df.columns)
+
+y = df[y_train_column]
+X = df.drop(columns=[y_train_column])
+
+
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=242)
+X_cv, X_test, y_cv, y_test = train_test_split(X_test, y_test, test_size=0.5, random_state=242)
+
+print(X_train.shape)
+print(y_train.shape)
+
+print(X_test.shape)
+print(y_test.shape)
+
+print(X_cv.shape)
+print(y_cv.shape)
+
+
+
+def applyPolynomial(x, degree=1):
+    poly_features = []
+
+    for i in range(len(x)):
+        for d in range(1, degree + 1):
+            poly_features.append(x[i] ** d)
+    return poly_features
+
+
+
+import numpy as np
+
+def predict(x, w, b, degree=1):
+    poly_features = applyPolynomial(x, degree)
+    poly_features = np.array(poly_features)
+    y_hat = np.dot(poly_features, w) + b
+
+    return y_hat, poly_features
+
+
+
+def linear_regression(X, w, b, degree=1):
+    y_hats = []
+    for i in range(X.shape[0]):
+        x = X[i]
+        y_hat,_ = predict(x, w, b, degree)
+        y_hats.append(y_hat)        
+
+    return y_hats
+
+
+def compute_lr_cost(X, y, w, b, degree=1):
+    y_hats = linear_regression(X, w, b, degree)
+
+    total_error = 0
+    for i in range(len(y)):
+        total_error += (y_hats[i] - y[i]) ** 2
+
+    cost = total_error / (2 * len(y))
+    return cost
+
+
+
+def gradient_descent(X, y, w, b, a, degree=2):
+    w_sum = w_sum = np.zeros_like(w, dtype=float) 
+    b_sum = 0
+    m = len(y)
+    for i in range(len(y)):
+        x = X[i]
+        true_y = y[i]
+        y_hat, poly_features = predict(x, w, b, degree)
+        
+
+        error = y_hat - true_y
+        b_sum += error
+        w_sum +=  error * poly_features
+
+    w = w - (a * (1 * w_sum / m))
+    b = b - (a * (1 * b_sum / m))
+
+    return (w,b)
+
+
+
+def reduce_cost(X, y, w, b, a, epochs=3000, degree=1):
+    
+    minB =100
+    minW=100
+    minCost=100
+
+    for i in range(epochs):
+        w,b = gradient_descent(X, y, w, b, a, degree)
+
+        if (i + 1) % 10 == 0 or i == 0 or i == epochs - 1:           
+            
+            print('Iteration ' + str(i+1) )
+            cost = compute_lr_cost(X, y, w, b, degree)
+            print('complete cost='+str(cost))
+            if(cost < minCost):
+                
+                minW = w
+                minB = b
+                minCost = cost
+
+                print('b='+str(b))
+                print('w='+str(np.sum(w)))
+                print(w)
+                print('cost='+str(cost))
+                print('cost='+str(cost*100))
+                print('=========================')
+            
+
+    return minW,minB
+
+
+
+
+
+
+degree = 8
+b = 1
+a = 0.298
+w = np.random.rand(degree * X_train.shape[1]) * 0.01
+
+
+
+epochs = 5000
+training_sample_size = 6000
+
+
+X_train_sample = X_train[:training_sample_size].to_numpy()
+y_train_sample = y_train[:training_sample_size].to_numpy()
+w, b = reduce_cost(X_train_sample, y_train_sample, w, b, a, epochs, degree)
+
+
+
+
+
+cost = compute_lr_cost(X_train_sample,y_train_sample,w,b,degree)
+y_hats = linear_regression(X_train_sample,w,b,degree)
+
+print('Cost:\t\t'+str(cost))
+print('Cost:\t\t'+str(cost*100))
+
+
+# print(y_train_sample_100)
+# print(y_hats)
+plottingSample = 25
+
+plt.scatter(range(plottingSample), y_train_sample[:plottingSample], label='True Y')
+plt.scatter(range(plottingSample), y_hats[:plottingSample],color='red' )
+plt.plot(range(plottingSample), y_hats[:plottingSample], label='Predicted Y (Line)', color='green')
+plt.title('Prediction vs True Values')
+plt.xlabel('Index')
+plt.ylabel('Y Value')
+# plt.legend()
+plt.show()
+
+Here is my code. I am using the following dataset
+https://archive.ics.uci.edu/dataset/320/student+performance

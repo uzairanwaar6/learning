@@ -1,0 +1,12 @@
+python -m venv venv
+python.exe -m pip install --upgrade pip  
+pip install pandas
+pip install numpy
+pip install matplotlib
+pip install scikit-learn
+pip install tensorflow
+
+pip freeze > requirements.txt
+
+
+pip install pandas;pip install numpy;pip install matplotlib;pip install scikit-learn;pip install tensorflow;pip freeze > requirements.txt
